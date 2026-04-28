@@ -15,9 +15,13 @@
 - `GET http://localhost:8080/health`
 - `GET http://localhost:8080/actuator/health`
 
-## 代码结构（DDD 分层）
+## 代码结构（保持简单，逐步演进）
+
+当前后端只保留最小可运行骨架（例如 `GET /health`），后续随着任务推进再逐步补齐结构。
+
+建议的分层（有需要时再加，不提前“搭空架子”）：
 
 - `com.orderwatch.backend.interfaces`：对外接口层（HTTP Controller / DTO）
 - `com.orderwatch.backend.application`：应用层（用例编排、事务边界）
 - `com.orderwatch.backend.domain`：领域层（聚合/实体/值对象/领域服务/仓储接口）
-- `com.orderwatch.backend.infrastructure`：基础设施层（DB、消息、Milvus、外部 API 适配等）
+- `com.orderwatch.backend.infrastructure`：基础设施层（Milvus、文件读取、外部适配等）
