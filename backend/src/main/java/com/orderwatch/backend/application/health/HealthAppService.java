@@ -11,4 +11,3 @@ public class HealthAppService {
         return new HealthResult(status.name().toLowerCase());
     }
 }
-
