@@ -1,0 +1,13 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: order-watch-backend
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
