@@ -11,3 +11,24 @@ management:
       exposure:
         include: health,info
 
+# ---- OrderWatch Mini config (see OrderWatch-Mini-PRD.md) ----
+
+milvus:
+  host: ${MILVUS_HOST:localhost}
+  port: ${MILVUS_PORT:19530}
+  collection-name: ${MILVUS_COLLECTION_NAME:order_sop_chunks}
+  vector-dimension: ${MILVUS_VECTOR_DIMENSION:1024}
+
+rag:
+  top-k: ${RAG_TOP_K:3}
+  docs-path: ${RAG_DOCS_PATH:./order-docs}
+
+embedding:
+  provider: ${EMBEDDING_PROVIDER:fake} # fake | dashscope
+  dimension: ${EMBEDDING_DIMENSION:1024}
+  dashscope:
+    api-key: ${DASHSCOPE_API_KEY:}
+    model: ${DASHSCOPE_EMBEDDING_MODEL:text-embedding-v4}
+
+order:
+  mock-enabled: ${ORDER_MOCK_ENABLED:true}

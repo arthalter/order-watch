@@ -22,3 +22,5 @@
 .env
 .env.*
 
+# Spring Boot local secrets
+backend/src/main/resources/application-dev.yml
