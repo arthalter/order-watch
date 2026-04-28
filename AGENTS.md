@@ -101,3 +101,49 @@
 - 任何对外 API：统一返回结构（若项目已有 `ApiResponse`，则全部复用）。
 - 配置集中在 `application.yml`（端口、RAG 参数、Milvus 连接等），避免散落常量。
 - 错误处理：优先返回清晰的错误信息（参数缺失、Milvus 未连通、文档目录为空等），不要静默失败。
+
+---
+
+## 领域落盘指南（长期约定）
+
+以下约定用于让微型项目在持续迭代中仍保持清晰：**interfaces 只做 HTTP、application 做用例编排、infrastructure 做外部实现，domain 先保留但不强制使用**。
+
+### 通用分层（所有领域通用）
+
+- `com.orderwatch.backend.interfaces.http`：Controller（路由、入参/出参、HTTP 状态码）
+- `com.orderwatch.backend.interfaces.http.dto`：对外 Request/Response DTO（对前端/调用方稳定）
+- `com.orderwatch.backend.api`：全局 API 契约（如 `ApiResponse`、`ErrorCode`、后续全局异常处理）
+- `com.orderwatch.backend.application.<domain>`：用例编排（串流程、聚合数据、调用 Tool/RAG/Mock/Report）
+- `com.orderwatch.backend.infrastructure.<domain>`：外部实现（Milvus SDK、文件读写、外部 HTTP、Mock 数据实现等）
+- `com.orderwatch.backend.domain.<domain>`：当且仅当出现稳定业务规则/策略/模型时再下沉（早期可空置）
+
+### rag 领域（文档→分片→Embedding→Milvus→召回/重排）
+
+- HTTP 接口（`/api/index-local-docs`、`/api/sop_search`）：`interfaces/http`
+- 文档读取（扫描目录、读 Markdown）：`infrastructure/rag`
+- 分片（chunking）与检索流程编排：`application/rag`
+- Embedding：
+  - Fake/本地算法：`application/rag`
+  - 外部模型/服务调用：`infrastructure/rag`（application 只编排）
+- Milvus 连接/配置/Collection 初始化/Upsert/Search：`infrastructure/rag`
+- 召回（retrieval）与重排（rerank）：
+  - 纯规则/轻量加权：`application/rag`
+  - 依赖外部 rerank 服务：`infrastructure/rag`
+
+### chat 领域（ops_chat 编排）
+
+- HTTP 接口（`/api/ops_chat`）：`interfaces/http` + `interfaces/http/dto`
+- 意图判断（指标/证据/SOP/报告）、工具调用编排、回答组织：`application/chat`
+- 如果后续接入大模型/外部 Chat API：`infrastructure/chat`（application 只做流程）
+
+### monitoring 领域（监控与报告）
+
+- HTTP 接口（`/api/order_anomaly_monitor` 等）：`interfaces/http` + `interfaces/http/dto`
+- 监控/报告用例编排（拉指标、拉证据、引用 SOP、生成 Markdown 报告）：`application/monitoring`
+- 报告模板与纯拼装逻辑：优先 `application/monitoring`（需要复用/复杂化再考虑下沉）
+
+### mock 领域（业务事实数据源）
+
+- 用例编排侧（需要哪些事实、如何组合）：`application/mock`
+- 具体数据实现（内存列表、fixture、文件数据等）：`infrastructure/mock`
+- 早期不强制定义 port/interface；如后续需要替换为真实数据源，再引入 `domain` 层接口
