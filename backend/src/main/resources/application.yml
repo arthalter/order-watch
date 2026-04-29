@@ -22,6 +22,7 @@ milvus:
 rag:
   top-k: ${RAG_TOP_K:3}
   docs-path: ${RAG_DOCS_PATH:./order-docs}
+  chunk-max-chars: ${RAG_CHUNK_MAX_CHARS:120}
 
 embedding:
   provider: ${EMBEDDING_PROVIDER:fake} # fake | dashscope
