@@ -8,8 +8,14 @@
 
 需要安装 Java 17（推荐 Temurin 17）。
 
+- 启动 Milvus（Standalone，含 etcd + minio）：
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose down`
 - 启动：`./mvnw spring-boot:run`
 - 测试：`./mvnw test`
+- Milvus 连通性测试（需要先启动 docker compose）：
+  - `./mvnw -Dmilvus.it=true test`
 
 启动后：
 - `GET http://localhost:8080/health`
