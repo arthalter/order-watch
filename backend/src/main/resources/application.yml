@@ -25,11 +25,13 @@ rag:
   chunk-max-chars: ${RAG_CHUNK_MAX_CHARS:120}
 
 embedding:
-  provider: ${EMBEDDING_PROVIDER:fake} # fake | dashscope
+  provider: ${EMBEDDING_PROVIDER:dashscope} # fake | dashscope
   dimension: ${EMBEDDING_DIMENSION:1024}
   dashscope:
     api-key: ${DASHSCOPE_API_KEY:}
     model: ${DASHSCOPE_EMBEDDING_MODEL:text-embedding-v4}
+    base-url: ${DASHSCOPE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    timeout-ms: ${DASHSCOPE_TIMEOUT_MS:10000}
 
 order:
   mock-enabled: ${ORDER_MOCK_ENABLED:true}
