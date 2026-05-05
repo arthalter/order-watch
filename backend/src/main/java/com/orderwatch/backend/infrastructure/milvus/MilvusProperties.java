@@ -13,4 +13,5 @@ public class MilvusProperties {
     private int port;
     private String collectionName;
     private int vectorDimension;
+    private boolean initializeOnStartup;
 }

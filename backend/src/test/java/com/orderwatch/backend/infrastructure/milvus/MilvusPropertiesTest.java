@@ -20,7 +20,8 @@ class MilvusPropertiesTest {
                         "milvus.host=localhost",
                         "milvus.port=19530",
                         "milvus.collection-name=order_sop_chunks",
-                        "milvus.vector-dimension=1024"
+                        "milvus.vector-dimension=1024",
+                        "milvus.initialize-on-startup=true"
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(MilvusProperties.class);
@@ -29,7 +30,7 @@ class MilvusPropertiesTest {
                     assertThat(properties.getPort()).isEqualTo(19530);
                     assertThat(properties.getCollectionName()).isEqualTo("order_sop_chunks");
                     assertThat(properties.getVectorDimension()).isEqualTo(1024);
+                    assertThat(properties.isInitializeOnStartup()).isTrue();
                 });
     }
 }
-

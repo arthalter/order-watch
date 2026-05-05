@@ -18,6 +18,7 @@ milvus:
   port: ${MILVUS_PORT:19530}
   collection-name: ${MILVUS_COLLECTION_NAME:order_sop_chunks}
   vector-dimension: ${MILVUS_VECTOR_DIMENSION:1024}
+  initialize-on-startup: ${MILVUS_INITIALIZE_ON_STARTUP:true}
 
 rag:
   top-k: ${RAG_TOP_K:3}
