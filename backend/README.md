@@ -24,6 +24,7 @@
 - 启动时会自动检查并初始化 Milvus SOP collection：`order_sop_chunks`
 - 手动触发初始化：`curl -X POST http://localhost:8080/api/sop/collection/init`
 - 查看 collection 状态：`curl http://localhost:8080/api/sop/collection`
+- 入库本地 SOP 文档：`curl -X POST http://localhost:8080/api/sop/index-local-docs`
 
 ## 代码结构（保持简单，逐步演进）
 
