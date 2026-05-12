@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: order-watch-backend
+  ai:
+    openai:
+      api-key: ${DASHSCOPE_API_KEY:}
+      base-url: ${DASHSCOPE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+      chat:
+        options:
+          model: ${DASHSCOPE_CHAT_MODEL:qwen-plus}
 
 management:
   endpoints:
