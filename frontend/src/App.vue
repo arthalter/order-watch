@@ -364,7 +364,7 @@ async function askAgent() {
   chatLoading.value = true
   try {
     const data = await postJson('/api/ops_chat', { question: question.value })
-    chatAnswer.value = data.answer || data.message || JSON.stringify(data, null, 2)
+    chatAnswer.value = data.data?.answer || data.data?.errorMessage || data.message || JSON.stringify(data, null, 2)
   } catch {
     chatAnswer.value = `演示回答：${question.value}\n\n该问题会调用 Agent Tool 获取订单事实，并结合 Milvus 检索到的 SOP 片段生成解释。当前建议优先处理高危订单，完成支付状态、地址画像、客服备注与优惠券使用记录核验。`
     ElMessage.info('后端未响应，已使用前端演示数据。')

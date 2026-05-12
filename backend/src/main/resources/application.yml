@@ -43,3 +43,6 @@ embedding:
 
 order:
   mock-enabled: ${ORDER_MOCK_ENABLED:true}
+  chat:
+    connect-timeout-ms: ${ORDER_CHAT_CONNECT_TIMEOUT_MS:10000}
+    read-timeout-ms: ${ORDER_CHAT_READ_TIMEOUT_MS:120000}
