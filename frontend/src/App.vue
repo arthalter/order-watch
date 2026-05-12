@@ -377,7 +377,7 @@ async function generateReport() {
   reportLoading.value = true
   try {
     const data = await postJson('/api/order_anomaly_monitor')
-    report.value = data.report || data.message || JSON.stringify(data, null, 2)
+    report.value = data.data?.report || data.message || JSON.stringify(data, null, 2)
   } catch {
     report.value = `# 异常订单监控报告
 

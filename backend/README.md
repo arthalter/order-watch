@@ -26,6 +26,27 @@
 - 查看 collection 状态：`curl http://localhost:8080/api/sop/collection`
 - 入库本地 SOP 文档：`curl -X POST http://localhost:8080/api/sop/index-local-docs`
 - 检索 SOP 文档：`curl "http://localhost:8080/api/sop/search?query=大额订单人工审核&topK=3"`
+- 运营问答：`curl -X POST http://localhost:8080/api/ops_chat -H "Content-Type: application/json" -d '{"question":"遇到大额支付订单怎么办"}'`
+- 生成异常监控报告：`curl -X POST http://localhost:8080/api/order_anomaly_report`
+
+## 演示脚本
+
+以下命令用于跑通 Milvus RAG、运营问答和 Markdown 报告链路。需要先配置 `DASHSCOPE_API_KEY`。
+
+```bash
+docker compose up -d
+
+export DASHSCOPE_API_KEY=你的百炼APIKey
+./mvnw spring-boot:run
+
+curl -X POST http://localhost:8080/api/sop/index-local-docs
+
+curl -X POST http://localhost:8080/api/ops_chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"遇到大额支付订单怎么办"}'
+
+curl -X POST http://localhost:8080/api/order_anomaly_report
+```
 
 ## 代码结构（保持简单，逐步演进）
 
