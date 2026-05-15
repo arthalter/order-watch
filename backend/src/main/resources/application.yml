@@ -3,10 +3,10 @@ server:
 
 spring:
   application:
-    name: order-watch-backend
+    name: legal-watch-backend
   ai:
     openai:
-      api-key: ${DASHSCOPE_API_KEY:}
+      api-key: ${DASHSCOPE_API_KEY:test-key}
       base-url: ${DASHSCOPE_CHAT_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode}
       chat:
         options:
@@ -18,18 +18,18 @@ management:
       exposure:
         include: health,info
 
-# ---- OrderWatch Mini config (see OrderWatch-Mini-PRD.md) ----
+# ---- LegalWatch Mini config ----
 
 milvus:
   host: ${MILVUS_HOST:localhost}
   port: ${MILVUS_PORT:19530}
-  collection-name: ${MILVUS_COLLECTION_NAME:order_sop_chunks}
+  collection-name: ${MILVUS_COLLECTION_NAME:legal_sop_chunks}
   vector-dimension: ${MILVUS_VECTOR_DIMENSION:1024}
   initialize-on-startup: ${MILVUS_INITIALIZE_ON_STARTUP:true}
 
 rag:
   top-k: ${RAG_TOP_K:3}
-  docs-path: ${RAG_DOCS_PATH:./order-docs}
+  docs-path: ${RAG_DOCS_PATH:./legal-docs}
   chunk-max-chars: ${RAG_CHUNK_MAX_CHARS:120}
 
 embedding:
@@ -40,9 +40,3 @@ embedding:
     model: ${DASHSCOPE_EMBEDDING_MODEL:text-embedding-v4}
     base-url: ${DASHSCOPE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
     timeout-ms: ${DASHSCOPE_TIMEOUT_MS:10000}
-
-order:
-  mock-enabled: ${ORDER_MOCK_ENABLED:true}
-  chat:
-    connect-timeout-ms: ${ORDER_CHAT_CONNECT_TIMEOUT_MS:10000}
-    read-timeout-ms: ${ORDER_CHAT_READ_TIMEOUT_MS:120000}

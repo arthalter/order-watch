@@ -1,90 +1,67 @@
-# OrderWatch Mini (Monorepo: Frontend + Backend)
+# LegalWatch Mini (Backend-Focused Monorepo)
 
-`OrderWatch Mini` 是一个学习型 Agent + Tool + Milvus RAG 骨架项目，用 Mock 异常订单数据模拟业务事实，用 Milvus 检索 SOP 文档，并通过百炼大模型生成运营问答和 Markdown 异常监控报告。
+`LegalWatch Mini` 是一个学习型 Agent + Tool + Milvus RAG 骨架项目，用于演示法律文档上传、Markdown 切片、Embedding 入库、Milvus 检索和法律文档查询对话。
 
-当前主链路已经跑通：
+当前后端主链路：
 
 ```text
-用户问题
-→ Agent 调用 Tool
-→ Tool 查询 Mock 异常订单 / Mock 证据 / Milvus SOP
-→ Agent 基于事实和规则生成回答或报告
+上传 / 本地文档
+→ Markdown 读取与切片
+→ Embedding
+→ Milvus 向量入库
+→ 用户问题
+→ Agent 调用唯一的 LegalSopTools
+→ 基于命中文档片段生成查询回答
 ```
 
 ## 目录
 
-- `backend/`：Spring Boot 后端，包含 Milvus RAG、Mock 数据、Tool、Agent 和 API
-- `frontend/`：Vite + Vue 前端，通过开发代理访问后端 API
-- `OrderWatch-Mini-PRD.md`：产品文档
-- `TickTick-Work-Tasks.md`：24 个任务清单
+- `backend/`：Spring Boot 后端，包含 Milvus RAG、文档上传、检索 Tool、Agent 和 API
+- `frontend/`：旧版前端原型目录，本次后端改造未作为验证入口
+- `backend/legal-docs/`：本地 Markdown 文档目录
 
 ## 本地运行
 
 ```bash
 cd backend
 docker compose up -d
+EMBEDDING_PROVIDER=fake ./mvnw spring-boot:run
+```
+
+使用真实百炼 embedding 时：
+
+```bash
 export DASHSCOPE_API_KEY=你的百炼APIKey
 ./mvnw spring-boot:run
 ```
 
-另开一个终端启动前端：
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-访问：
-
-- 前端：`http://localhost:5173`
-- 后端健康检查：`http://localhost:8080/health`
-- Milvus 健康检查：`http://localhost:8080/health/milvus`
-
 ## 核心接口
 
 ```bash
-# SOP 文档入库
+# 上传 Markdown 文档并立即切片入库
+curl -X POST http://localhost:8080/api/documents/upload \
+  -F "file=@/path/to/legal-doc.md"
+
+# 入库 backend/legal-docs 下的本地 Markdown 文档
 curl -X POST http://localhost:8080/api/sop/index-local-docs
 
-# SOP 检索
-curl "http://localhost:8080/api/sop/search?query=大额订单人工审核&topK=3"
+# 检索已入库文档片段
+curl "http://localhost:8080/api/sop/search?query=保证责任&topK=3"
 
-# 运营问答
-curl -X POST http://localhost:8080/api/ops_chat \
+# 法律文档查询对话
+curl -X POST http://localhost:8080/api/legal_chat \
   -H "Content-Type: application/json" \
-  -d '{"question":"遇到大额支付订单怎么办"}'
-
-# Markdown 异常监控报告
-curl -X POST http://localhost:8080/api/order_anomaly_report
-```
-
-报告接口返回结构：
-
-```json
-{
-  "success": true,
-  "code": 0,
-  "message": "ok",
-  "data": {
-    "report": "# 异常订单监控报告\n..."
-  }
-}
+  -d '{"question":"保证责任怎么查询？"}'
 ```
 
 ## 验证
 
+真实 HTTP + Milvus 集成测试：
+
 ```bash
 cd backend
+docker compose up -d
 ./mvnw test
-
-cd ../frontend
-npm run build
 ```
 
-真实 ReportAgent 链路测试会请求百炼，默认跳过；需要时手动执行：
-
-```bash
-cd backend
-DASHSCOPE_API_KEY=你的百炼APIKey ./mvnw -Dreport.agent.it=true -Dtest=ReportAgentIntegrationTest test
-```
+测试会用随机端口启动 Spring Boot，连接本地 Milvus，调用上传、入库、检索、对话和健康检查接口。

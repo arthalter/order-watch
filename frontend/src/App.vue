@@ -1,408 +1,438 @@
 <template>
-  <el-container class="app-shell">
-    <el-aside width="248px" class="sidebar">
+  <main class="legal-shell">
+    <aside class="rail">
       <div class="brand">
-        <div class="brand-mark">OW</div>
+        <div class="brand-mark">LW</div>
         <div>
-          <div class="brand-name">OrderWatch</div>
-          <div class="brand-subtitle">异常订单监控 Agent</div>
+          <strong>LegalWatch</strong>
+          <span>Mini RAG Console</span>
         </div>
       </div>
 
-      <el-menu class="nav-menu" default-active="monitor">
-        <el-menu-item index="monitor">
-          <el-icon><Warning /></el-icon>
-          <span>异常监控</span>
-        </el-menu-item>
-        <el-menu-item index="review">
-          <el-icon><DocumentChecked /></el-icon>
-          <span>人工审核</span>
-        </el-menu-item>
-        <el-menu-item index="sop">
-          <el-icon><Reading /></el-icon>
-          <span>SOP 知识库</span>
-        </el-menu-item>
-        <el-menu-item index="report">
-          <el-icon><DataAnalysis /></el-icon>
-          <span>监控报告</span>
-        </el-menu-item>
-      </el-menu>
+      <nav class="rail-nav" aria-label="LegalWatch sections">
+        <a href="#status">
+          <el-icon><Monitor /></el-icon>
+          状态
+        </a>
+        <a href="#knowledge">
+          <el-icon><Files /></el-icon>
+          知识库
+        </a>
+        <a href="#search">
+          <el-icon><Search /></el-icon>
+          检索
+        </a>
+        <a href="#chat">
+          <el-icon><ChatLineRound /></el-icon>
+          问答
+        </a>
+      </nav>
 
-      <div class="sidebar-status">
-        <div class="status-line">
-          <span>Milvus RAG</span>
-          <strong>在线</strong>
-        </div>
-        <div class="status-line">
-          <span>Mock Tools</span>
-          <strong>4 个</strong>
-        </div>
+      <div class="rail-note">
+        <span>后端代理</span>
+        <strong>localhost:8080</strong>
       </div>
-    </el-aside>
+    </aside>
 
-    <el-container>
-      <el-header class="topbar">
+    <section class="desk">
+      <header class="hero">
         <div>
-          <div class="page-kicker">运营风控工作台</div>
-          <h1>异常订单处置中心</h1>
+          <p class="eyebrow">法律 SOP / Milvus / 文档问答</p>
+          <h1>法律知识库 RAG 工作台</h1>
+          <p class="hero-copy">
+            用一个页面完成健康检查、collection 初始化、Markdown 入库、SOP 检索和法律问答。
+          </p>
         </div>
-        <div class="topbar-actions">
-          <el-input
-            v-model="search"
-            class="search-input"
-            placeholder="搜索订单号、用户、地址"
-            clearable
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-          <el-button :icon="Refresh" @click="refreshData">刷新</el-button>
-          <el-button type="primary" :icon="Cpu" :loading="reportLoading" @click="generateReport">
-            一键生成报告
+        <div class="hero-actions">
+          <el-button :icon="Refresh" :loading="statusLoading" @click="refreshStatus">
+            刷新状态
+          </el-button>
+          <el-button type="primary" :icon="Cpu" :loading="indexing" @click="indexLocalDocs">
+            索引本地文档
           </el-button>
         </div>
-      </el-header>
+      </header>
 
-      <el-main class="main">
-        <section class="metric-strip">
-          <div v-for="metric in metrics" :key="metric.label" class="metric-tile">
-            <div class="metric-label">{{ metric.label }}</div>
-            <div class="metric-value">{{ metric.value }}</div>
-            <div class="metric-meta" :class="metric.tone">{{ metric.meta }}</div>
+      <section id="status" class="status-grid">
+        <article class="status-card">
+          <div class="status-top">
+            <span>Spring Boot</span>
+            <el-tag :type="health.ok ? 'success' : 'danger'" effect="dark">
+              {{ health.ok ? '在线' : '离线' }}
+            </el-tag>
           </div>
-        </section>
+          <strong>{{ health.text }}</strong>
+          <small>{{ health.detail }}</small>
+        </article>
 
-        <section class="workspace">
-          <div class="panel order-panel">
-            <div class="panel-head">
-              <div>
-                <h2>异常订单清单</h2>
-                <p>按风险等级与可解释证据排序，优先处理高危订单。</p>
-              </div>
-              <el-segmented v-model="riskFilter" :options="riskOptions" />
+        <article class="status-card">
+          <div class="status-top">
+            <span>Milvus</span>
+            <el-tag :type="milvus.connected ? 'success' : 'warning'" effect="dark">
+              {{ milvus.connected ? '可连接' : '待检查' }}
+            </el-tag>
+          </div>
+          <strong>{{ milvus.host }}:{{ milvus.port }}</strong>
+          <small>{{ milvus.latencyMs }} ms</small>
+        </article>
+
+        <article class="status-card">
+          <div class="status-top">
+            <span>Collection</span>
+            <el-tag :type="collection.exists ? 'success' : 'info'" effect="dark">
+              {{ collection.exists ? '已存在' : '未创建' }}
+            </el-tag>
+          </div>
+          <strong>legal_sop_chunks</strong>
+          <small>{{ collection.message }}</small>
+        </article>
+
+        <article class="status-card">
+          <div class="status-top">
+            <span>最近操作</span>
+            <el-tag type="info" effect="plain">{{ lastAction.level }}</el-tag>
+          </div>
+          <strong>{{ lastAction.title }}</strong>
+          <small>{{ lastAction.detail }}</small>
+        </article>
+      </section>
+
+      <section class="work-grid">
+        <article id="knowledge" class="panel knowledge-panel">
+          <div class="panel-head">
+            <div>
+              <p class="section-label">Knowledge Base</p>
+              <h2>文档入库</h2>
             </div>
-
-            <el-table
-              :data="filteredOrders"
-              height="440"
-              class="risk-table"
-              row-key="id"
-              :row-class-name="riskRowClass"
-            >
-              <el-table-column label="订单" min-width="190">
-                <template #default="{ row }">
-                  <button class="order-link" @click="selectedOrderId = row.id">{{ row.id }}</button>
-                  <div class="muted">{{ row.user }}</div>
-                </template>
-              </el-table-column>
-              <el-table-column label="风险" width="118">
-                <template #default="{ row }">
-                  <el-tag :type="riskTagType(row.risk)" effect="dark" round>
-                    {{ riskText(row.risk) }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="type" label="异常类型" min-width="160" />
-              <el-table-column label="金额" width="118" align="right">
-                <template #default="{ row }">¥{{ row.amount.toLocaleString() }}</template>
-              </el-table-column>
-              <el-table-column prop="evidence" label="关键证据" min-width="260" show-overflow-tooltip />
-              <el-table-column label="状态" width="128">
-                <template #default="{ row }">
-                  <el-tag :type="row.status === '待复核' ? 'warning' : 'info'" effect="plain">
-                    {{ row.status }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-            </el-table>
+            <el-button :icon="Box" :loading="initializing" @click="initCollection">
+              初始化 Collection
+            </el-button>
           </div>
 
-          <aside class="panel detail-panel">
-            <div class="panel-head compact">
-              <div>
-                <h2>AI 分析</h2>
-                <p>{{ selectedOrder.id }}</p>
-              </div>
-              <el-tag :type="riskTagType(selectedOrder.risk)" effect="dark" round>
-                {{ riskText(selectedOrder.risk) }}
-              </el-tag>
-            </div>
-
-            <div class="risk-score">
-              <div>
-                <span>风险评分</span>
-                <strong>{{ selectedOrder.score }}</strong>
-              </div>
-              <el-progress
-                :percentage="selectedOrder.score"
-                :stroke-width="10"
-                :color="progressColor"
-                :show-text="false"
-              />
-            </div>
-
-            <el-timeline class="analysis-timeline">
-              <el-timeline-item
-                v-for="item in selectedOrder.analysis"
-                :key="item.title"
-                :type="item.type"
-                :timestamp="item.title"
+          <div class="upload-zone" @dragover.prevent @drop.prevent="handleDrop">
+            <input
+              ref="fileInput"
+              type="file"
+              accept=".md,.markdown,text/markdown,text/plain"
+              class="file-input"
+              @change="handleFileSelect"
+            />
+            <el-icon><UploadFilled /></el-icon>
+            <strong>{{ selectedFileName || '拖入 Markdown，或选择文件上传' }}</strong>
+            <span>上传后会立即调用 `/api/documents/upload` 并写入 Milvus。</span>
+            <div class="upload-actions">
+              <el-button :icon="FolderOpened" @click="openFileDialog">选择文件</el-button>
+              <el-button
+                type="primary"
+                :icon="Upload"
+                :disabled="!selectedFile"
+                :loading="uploading"
+                @click="uploadDocument"
               >
-                {{ item.detail }}
-              </el-timeline-item>
-            </el-timeline>
-
-            <div class="sop-box">
-              <div class="sop-title">
-                <el-icon><Connection /></el-icon>
-                命中 SOP
-              </div>
-              <p>{{ selectedOrder.sop }}</p>
-            </div>
-
-            <div class="review-actions">
-              <el-button type="danger" plain :icon="CircleClose">拦截发货</el-button>
-              <el-button type="warning" plain :icon="UserFilled">转人工复核</el-button>
-              <el-button type="success" plain :icon="CircleCheck">标记通过</el-button>
-            </div>
-          </aside>
-        </section>
-
-        <section class="lower-grid">
-          <div class="panel chat-panel">
-            <div class="panel-head compact">
-              <div>
-                <h2>运营问答</h2>
-                <p>通过 Agent 查询异常指标、订单证据与 SOP 规则。</p>
-              </div>
-            </div>
-            <div class="chat-output">{{ chatAnswer }}</div>
-            <div class="chat-input-row">
-              <el-input
-                v-model="question"
-                placeholder="例如：为什么 ORDER-20260427-001 被判定为高危？"
-                @keyup.enter="askAgent"
-              />
-              <el-button type="primary" :icon="Position" :loading="chatLoading" @click="askAgent">
-                发送
+                上传并入库
               </el-button>
             </div>
           </div>
 
-          <div class="panel report-panel">
-            <div class="panel-head compact">
-              <div>
-                <h2>异常监控报告</h2>
-                <p>报告会汇总异常概览、证据摘要、SOP 与人工确认项。</p>
-              </div>
-            </div>
-            <pre class="report-preview">{{ report }}</pre>
+          <div class="result-box">
+            <span>入库结果</span>
+            <pre>{{ indexResult }}</pre>
           </div>
-        </section>
-      </el-main>
-    </el-container>
-  </el-container>
+        </article>
+
+        <article id="search" class="panel search-panel">
+          <div class="panel-head">
+            <div>
+              <p class="section-label">Retrieval</p>
+              <h2>SOP 检索</h2>
+            </div>
+            <el-input-number v-model="topK" :min="1" :max="10" controls-position="right" />
+          </div>
+
+          <div class="query-row">
+            <el-input
+              v-model="searchQuery"
+              placeholder="例如：保证责任、正式法律意见、劳动争议证据"
+              @keyup.enter="searchSop"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+            <el-button type="primary" :icon="Search" :loading="searching" @click="searchSop">
+              检索
+            </el-button>
+          </div>
+
+          <div class="results-list">
+            <article v-for="item in searchResults" :key="`${item.fileName}-${item.chunkIndex}`" class="result-item">
+              <div class="result-meta">
+                <strong>{{ item.title || item.fileName }}</strong>
+                <span>{{ item.fileName }} · chunk {{ item.chunkIndex }} · {{ formatScore(item.score) }}</span>
+              </div>
+              <p>{{ item.content }}</p>
+            </article>
+            <el-empty v-if="!searchResults.length" description="暂无检索结果" />
+          </div>
+        </article>
+      </section>
+
+      <section id="chat" class="panel chat-panel">
+        <div class="panel-head">
+          <div>
+            <p class="section-label">Legal Agent</p>
+            <h2>法律文档问答</h2>
+          </div>
+          <el-tag :type="chatState.success ? 'success' : 'info'" effect="plain">
+            {{ chatState.success ? '已生成' : '等待问题' }}
+          </el-tag>
+        </div>
+
+        <div class="chat-layout">
+          <div class="question-stack">
+            <button
+              v-for="sample in sampleQuestions"
+              :key="sample"
+              class="sample-question"
+              type="button"
+              @click="question = sample"
+            >
+              {{ sample }}
+            </button>
+          </div>
+
+          <div class="answer-card">
+            <div class="answer-body">{{ chatAnswer }}</div>
+            <div class="chat-input-row">
+              <el-input
+                v-model="question"
+                type="textarea"
+                :autosize="{ minRows: 2, maxRows: 4 }"
+                placeholder="输入一个需要结合已入库 SOP 回答的问题"
+                @keydown.enter.exact.prevent="askLegalAgent"
+              />
+              <el-button type="primary" :icon="Position" :loading="chatLoading" @click="askLegalAgent">
+                发送
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
-  CircleCheck,
-  CircleClose,
-  Connection,
+  Box,
+  ChatLineRound,
   Cpu,
-  DataAnalysis,
-  DocumentChecked,
+  Files,
+  FolderOpened,
+  Monitor,
   Position,
-  Reading,
   Refresh,
   Search,
-  UserFilled,
-  Warning
+  Upload,
+  UploadFilled
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
-const search = ref('')
-const riskFilter = ref('全部')
-const selectedOrderId = ref('ORDER-20260427-001')
-const question = ref('最近 24 小时有哪些异常订单？')
+const statusLoading = ref(false)
+const initializing = ref(false)
+const indexing = ref(false)
+const uploading = ref(false)
+const searching = ref(false)
 const chatLoading = ref(false)
-const reportLoading = ref(false)
 
-const riskOptions = ['全部', '高危', '中危', '低危']
+const health = ref({ ok: false, text: '未检查', detail: '点击刷新状态检查后端健康。' })
+const milvus = ref({ connected: false, host: 'localhost', port: 19530, latencyMs: '-' })
+const collection = ref({ exists: false, message: '点击初始化 collection 后可写入文档。' })
+const lastAction = ref({ level: 'idle', title: '尚未操作', detail: '等待连接后端。' })
 
-const orders = ref([
-  {
-    id: 'ORDER-20260427-001',
-    user: 'USER-20488 / 新客',
-    risk: 'high',
-    type: '大额订单异常',
-    amount: 12999,
-    evidence: '金额高于均值 33.4 倍，首次地址，客服催促极速发货',
-    status: '待复核',
-    score: 92,
-    sop: '大额订单需先核对支付状态、收货地址、历史消费水平和客服备注，审核完成前不建议发货。',
-    analysis: [
-      { type: 'danger', title: '订单金额', detail: '当前订单 ¥12,999，显著高于店铺平均客单价 ¥389。' },
-      { type: 'warning', title: '地址画像', detail: '收货地址为首次出现，且与历史常用区域不一致。' },
-      { type: 'primary', title: '客服证据', detail: '备注中出现“尽快发货”诉求，符合高危 SOP 中的人工审核触发条件。' }
-    ]
-  },
-  {
-    id: 'ORDER-20260427-018',
-    user: 'USER-20488 / 老客',
-    risk: 'medium',
-    type: '频繁取消异常',
-    amount: 486,
-    evidence: '24 小时内下单 8 次，取消 6 次，命中羊毛党行为片段',
-    status: '待复核',
-    score: 71,
-    sop: '频繁取消应核查近期订单轨迹、优惠券使用情况与支付失败记录，必要时限制营销权益。',
-    analysis: [
-      { type: 'warning', title: '行为频次', detail: '该用户 24 小时内出现 8 次下单行为，高于同群体基线。' },
-      { type: 'warning', title: '取消比例', detail: '取消率达到 75%，疑似试探库存或优惠套利。' },
-      { type: 'primary', title: 'SOP 建议', detail: '先暂停自动优惠发放，再由运营确认是否加入观察名单。' }
-    ]
-  },
-  {
-    id: 'ORDER-20260427-031',
-    user: 'ADDR-MOCK-009 / 5 个账号',
-    risk: 'high',
-    type: '同地址多账号',
-    amount: 2195,
-    evidence: '同地址关联 5 个新用户账号，均使用首单券并集中下单',
-    status: '待复核',
-    score: 88,
-    sop: '同地址多账号需要合并查看收货地址、设备指纹、优惠券领取记录和客服工单。',
-    analysis: [
-      { type: 'danger', title: '地址聚集', detail: '同一收货地址关联 5 个新账号，超过 SOP 高危阈值。' },
-      { type: 'warning', title: '权益使用', detail: '关联订单均使用首单券，存在批量套券风险。' },
-      { type: 'primary', title: '人工确认', detail: '建议人工核验地址真实性，并暂缓相关订单出库。' }
-    ]
-  },
-  {
-    id: 'ORDER-20260427-044',
-    user: 'USER-31810 / 复购',
-    risk: 'low',
-    type: '支付延迟异常',
-    amount: 329,
-    evidence: '支付回调延迟 14 分钟，未发现地址或账号聚集风险',
-    status: '观察中',
-    score: 39,
-    sop: '支付延迟优先等待支付系统补偿回调，低风险订单无需立即拦截。',
-    analysis: [
-      { type: 'info', title: '支付链路', detail: '支付回调延迟，但最终支付状态已确认成功。' },
-      { type: 'success', title: '用户画像', detail: '复购用户，历史履约正常，无客服投诉记录。' },
-      { type: 'primary', title: '处置建议', detail: '保持观察，无需进入强人工审核队列。' }
-    ]
+const fileInput = ref(null)
+const selectedFile = ref(null)
+const searchQuery = ref('正式法律意见的答复边界')
+const topK = ref(3)
+const searchResults = ref([])
+const question = ref('正式法律意见的答复边界是什么？')
+const chatState = ref({ success: false })
+const chatAnswer = ref('先完成文档入库，然后向 Legal Agent 提问。回答会基于 Milvus 召回的 SOP 片段生成。')
+const indexResult = ref('尚未执行入库操作。')
+
+const sampleQuestions = [
+  '正式法律意见的答复边界是什么？',
+  '劳动争议证据应该如何整理？',
+  '保证责任怎么查询？'
+]
+
+const selectedFileName = computed(() => selectedFile.value?.name || '')
+
+onMounted(() => {
+  refreshStatus()
+})
+
+async function requestJson(url, options = {}) {
+  const response = await fetch(url, options)
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok || data.success === false) {
+    throw new Error(data.message || `HTTP ${response.status}`)
   }
-])
-
-const chatAnswer = ref('最近 24 小时发现 3 类重点异常：大额订单异常、频繁取消异常、同地址多账号下单异常。建议优先审核高危订单 ORDER-20260427-001 与 ORDER-20260427-031。')
-const report = ref('点击“一键生成报告”后，将从后端 /api/order_anomaly_monitor 获取报告；后端未启动时显示本地演示报告。')
-
-const metrics = computed(() => {
-  const high = orders.value.filter((item) => item.risk === 'high').length
-  const pending = orders.value.filter((item) => item.status === '待复核').length
-  return [
-    { label: '异常订单', value: orders.value.length, meta: '+18% vs 昨日', tone: 'danger' },
-    { label: '高危风险', value: high, meta: '需优先审核', tone: 'danger' },
-    { label: '待人工复核', value: pending, meta: '平均等待 12 分钟', tone: 'warning' },
-    { label: 'SOP 命中率', value: '96%', meta: 'Milvus TopK=3', tone: 'success' }
-  ]
-})
-
-const filteredOrders = computed(() => {
-  const keyword = search.value.trim().toLowerCase()
-  const riskMap = { 高危: 'high', 中危: 'medium', 低危: 'low' }
-
-  return orders.value.filter((order) => {
-    const riskMatched = riskFilter.value === '全部' || order.risk === riskMap[riskFilter.value]
-    const keywordMatched =
-      !keyword ||
-      [order.id, order.user, order.type, order.evidence].some((value) =>
-        value.toLowerCase().includes(keyword)
-      )
-    return riskMatched && keywordMatched
-  })
-})
-
-const selectedOrder = computed(() => {
-  return orders.value.find((order) => order.id === selectedOrderId.value) || orders.value[0]
-})
-
-const progressColor = computed(() => {
-  if (selectedOrder.value.score >= 85) return '#c9332b'
-  if (selectedOrder.value.score >= 60) return '#c47b18'
-  return '#2f7d5b'
-})
-
-function riskText(risk) {
-  return { high: '高危', medium: '中危', low: '低危' }[risk]
+  return data
 }
 
-function riskTagType(risk) {
-  return { high: 'danger', medium: 'warning', low: 'success' }[risk]
+async function refreshStatus() {
+  statusLoading.value = true
+  try {
+    const [healthData, milvusData, collectionData] = await Promise.all([
+      requestJson('/health'),
+      requestJson('/health/milvus'),
+      requestJson('/api/sop/collection')
+    ])
+
+    health.value = {
+      ok: true,
+      text: healthData.data || 'ok',
+      detail: '后端健康检查通过。'
+    }
+    milvus.value = milvusData.data || milvus.value
+    collection.value = {
+      exists: Boolean(collectionData.data?.exists),
+      message: collectionData.data?.exists ? 'Collection 可用于写入和检索。' : 'Collection 尚未创建。'
+    }
+    setLastAction('ok', '状态已刷新', '后端、Milvus 与 collection 状态已同步。')
+  } catch (error) {
+    health.value = { ok: false, text: '不可用', detail: error.message }
+    setLastAction('error', '状态检查失败', error.message)
+    ElMessage.warning('后端暂不可用，请确认 Spring Boot 已启动。')
+  } finally {
+    statusLoading.value = false
+  }
 }
 
-function riskRowClass({ row }) {
-  return `risk-row-${row.risk}`
+async function initCollection() {
+  initializing.value = true
+  try {
+    const data = await requestJson('/api/sop/collection/init', { method: 'POST' })
+    collection.value = { exists: true, message: 'Collection 初始化完成。' }
+    setLastAction('ok', 'Collection 已初始化', JSON.stringify(data.data, null, 2))
+    ElMessage.success('Collection 初始化完成')
+  } catch (error) {
+    setLastAction('error', '初始化失败', error.message)
+    ElMessage.error(error.message)
+  } finally {
+    initializing.value = false
+  }
 }
 
-async function postJson(url, payload = {}) {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return response.json()
+async function indexLocalDocs() {
+  indexing.value = true
+  try {
+    const data = await requestJson('/api/sop/index-local-docs', { method: 'POST' })
+    indexResult.value = JSON.stringify(data.data, null, 2)
+    setLastAction('ok', '本地文档已索引', indexResult.value)
+    ElMessage.success('本地 legal-docs 已索引')
+  } catch (error) {
+    indexResult.value = error.message
+    setLastAction('error', '索引失败', error.message)
+    ElMessage.error(error.message)
+  } finally {
+    indexing.value = false
+  }
 }
 
-async function askAgent() {
+function openFileDialog() {
+  fileInput.value?.click()
+}
+
+function handleFileSelect(event) {
+  selectedFile.value = event.target.files?.[0] || null
+}
+
+function handleDrop(event) {
+  selectedFile.value = event.dataTransfer.files?.[0] || null
+}
+
+async function uploadDocument() {
+  if (!selectedFile.value) return
+
+  uploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    const data = await requestJson('/api/documents/upload', {
+      method: 'POST',
+      body: formData
+    })
+    indexResult.value = JSON.stringify(data.data, null, 2)
+    setLastAction('ok', '文档上传完成', selectedFile.value.name)
+    ElMessage.success('文档已上传并入库')
+  } catch (error) {
+    indexResult.value = error.message
+    setLastAction('error', '上传失败', error.message)
+    ElMessage.error(error.message)
+  } finally {
+    uploading.value = false
+  }
+}
+
+async function searchSop() {
+  if (!searchQuery.value.trim()) {
+    ElMessage.warning('请输入检索词')
+    return
+  }
+
+  searching.value = true
+  try {
+    const params = new URLSearchParams({
+      query: searchQuery.value.trim(),
+      topK: String(topK.value)
+    })
+    const data = await requestJson(`/api/sop/search?${params.toString()}`)
+    searchResults.value = data.data || []
+    setLastAction('ok', '检索完成', `返回 ${searchResults.value.length} 条 SOP chunk。`)
+  } catch (error) {
+    searchResults.value = []
+    setLastAction('error', '检索失败', error.message)
+    ElMessage.error(error.message)
+  } finally {
+    searching.value = false
+  }
+}
+
+async function askLegalAgent() {
+  if (!question.value.trim()) {
+    ElMessage.warning('请输入问题')
+    return
+  }
+
   chatLoading.value = true
   try {
-    const data = await postJson('/api/ops_chat', { question: question.value })
-    chatAnswer.value = data.data?.answer || data.data?.errorMessage || data.message || JSON.stringify(data, null, 2)
-  } catch {
-    chatAnswer.value = `演示回答：${question.value}\n\n该问题会调用 Agent Tool 获取订单事实，并结合 Milvus 检索到的 SOP 片段生成解释。当前建议优先处理高危订单，完成支付状态、地址画像、客服备注与优惠券使用记录核验。`
-    ElMessage.info('后端未响应，已使用前端演示数据。')
+    const data = await requestJson('/api/legal_chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: question.value.trim() })
+    })
+    chatState.value = { success: Boolean(data.data?.success) }
+    chatAnswer.value = data.data?.answer || data.data?.errorMessage || data.message
+    setLastAction('ok', '问答完成', question.value.trim())
+  } catch (error) {
+    chatState.value = { success: false }
+    chatAnswer.value = error.message
+    setLastAction('error', '问答失败', error.message)
+    ElMessage.error(error.message)
   } finally {
     chatLoading.value = false
   }
 }
 
-async function generateReport() {
-  reportLoading.value = true
-  try {
-    const data = await postJson('/api/order_anomaly_monitor')
-    report.value = data.data?.report || data.message || JSON.stringify(data, null, 2)
-  } catch {
-    report.value = `# 异常订单监控报告
-
-## 异常概览
-最近 24 小时发现 4 笔异常订单，其中高危 2 笔、中危 1 笔、低危 1 笔。
-
-## 重点清单
-- ORDER-20260427-001：大额订单异常，风险评分 92。
-- ORDER-20260427-031：同地址多账号下单，风险评分 88。
-
-## 证据摘要
-高危订单集中命中金额偏离、首次地址、多账号聚集、客服催促发货等证据。
-
-## 处理建议
-暂停高危订单自动发货，转人工审核支付状态、地址真实性、历史消费水平与客服备注。
-
-## 需要人工确认
-确认收货地址是否真实、优惠券是否批量套利、是否存在恶意催发货。`
-    ElMessage.info('后端未响应，已生成前端演示报告。')
-  } finally {
-    reportLoading.value = false
-  }
+function formatScore(score) {
+  if (typeof score !== 'number') return 'score -'
+  return `score ${score.toFixed(4)}`
 }
 
-function refreshData() {
-  ElMessage.success('监控数据已刷新')
+function setLastAction(level, title, detail) {
+  lastAction.value = { level, title, detail }
 }
 </script>

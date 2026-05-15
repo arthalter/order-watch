@@ -10,11 +10,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.orderwatch</groupId>
-    <artifactId>order-watch-backend</artifactId>
+    <groupId>com.legalwatch</groupId>
+    <artifactId>legal-watch-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>order-watch-backend</name>
-    <description>OrderWatch backend (Spring Boot)</description>
+    <name>legal-watch-backend</name>
+    <description>LegalWatch backend (Spring Boot)</description>
 
     <properties>
         <java.version>17</java.version>
