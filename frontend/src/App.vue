@@ -181,39 +181,97 @@
         <div class="panel-head">
           <div>
             <p class="section-label">Legal Agent</p>
-            <h2>法律文档问答</h2>
+            <h2>连续法律研读</h2>
+            <p class="panel-caption">带着来源追问，让上下文成为可验证的检索线索。</p>
           </div>
-          <el-tag :type="chatState.success ? 'success' : 'info'" effect="plain">
-            {{ chatState.success ? '已生成' : '等待问题' }}
-          </el-tag>
+          <div class="conversation-actions">
+            <span class="memory-pill" :class="{ active: rememberedTurns.length }">{{ memoryLabel }}</span>
+            <el-button size="small" @click="startNewConversation">新对话</el-button>
+            <el-tag :type="chatState.success ? 'success' : 'info'" effect="plain">
+              {{ chatLoading ? '生成中' : chatState.success ? '已生成' : '等待问题' }}
+            </el-tag>
+          </div>
         </div>
 
         <div class="chat-layout">
           <div class="question-stack">
+            <div class="context-card" :class="{ active: rememberedTurns.length }">
+              <span class="context-label">Conversation Context</span>
+              <strong>{{ rememberedTurns.length ? '上下文记忆已启用' : '从一个主题开始' }}</strong>
+              <p>{{ contextDescription }}</p>
+              <span class="session-token">会话：{{ sessionLabel }}</span>
+              <ol v-if="retainedTurns.length" class="context-turns">
+                <li v-for="turn in retainedTurns" :key="turn.id">{{ turn.question }}</li>
+              </ol>
+            </div>
+
+            <p class="prompt-label">开始话题</p>
             <button
-              v-for="sample in sampleQuestions"
+              v-for="sample in startingQuestions"
               :key="sample"
               class="sample-question"
               type="button"
-              @click="question = sample"
+              @click="usePrompt(sample)"
+            >
+              {{ sample }}
+            </button>
+
+            <p class="prompt-label follow-up-label">结合上文追问</p>
+            <button
+              v-for="sample in followUpQuestions"
+              :key="sample"
+              class="sample-question follow-up-question"
+              type="button"
+              :disabled="!rememberedTurns.length"
+              @click="usePrompt(sample)"
             >
               {{ sample }}
             </button>
           </div>
 
-          <div class="answer-card">
-            <div class="answer-body">{{ chatAnswer }}</div>
-            <div class="chat-input-row">
+          <div class="conversation-stage">
+            <div ref="conversationThread" class="conversation-thread" aria-live="polite">
+              <div v-if="!conversationTurns.length" class="conversation-empty">
+                <strong>问一个基于文档的问题</strong>
+                <p>首次回答会创建会话；继续追问时，后端会结合该会话的近期问答摘要理解指代与上下文。</p>
+              </div>
+
+              <template v-for="turn in conversationTurns" :key="turn.id">
+                <article class="message user-message">
+                  <div class="message-meta">
+                    <strong>你</strong>
+                    <span v-if="turn.usesContext">基于上文追问</span>
+                  </div>
+                  <p>{{ turn.question }}</p>
+                </article>
+                <article class="message agent-message" :class="turn.status">
+                  <div class="message-meta">
+                    <strong>Legal Agent</strong>
+                    <span>{{ turn.status === 'loading' ? '检索与生成中' : turn.status === 'error' ? '回答失败' : '基于文档回答' }}</span>
+                  </div>
+                  <div v-if="turn.status === 'loading'" class="answer-loading">
+                    <span></span><span></span><span></span>
+                    正在检索知识库并组织引用
+                  </div>
+                  <div v-else class="agent-content">{{ turn.answer }}</div>
+                </article>
+              </template>
+            </div>
+
+            <div class="chat-composer">
               <el-input
                 v-model="question"
                 type="textarea"
                 :autosize="{ minRows: 2, maxRows: 4 }"
-                placeholder="输入一个需要结合已入库 SOP 回答的问题"
+                placeholder="输入问题；在已有会话中可使用“其中”“第二条”等追问表达"
                 @keydown.enter.exact.prevent="askLegalAgent"
               />
-              <el-button type="primary" :icon="Position" :loading="chatLoading" @click="askLegalAgent">
-                发送
-              </el-button>
+              <div class="composer-actions">
+                <small>{{ rememberedTurns.length ? '本次提问将沿用当前上下文' : '本次提问将创建新会话' }}</small>
+                <el-button type="primary" :icon="Position" :loading="chatLoading" @click="askLegalAgent">
+                  发送
+                </el-button>
+              </div>
             </div>
           </div>
         </div>
@@ -223,7 +281,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import {
   Box,
   ChatLineRound,
@@ -257,17 +315,42 @@ const searchQuery = ref('正式法律意见的答复边界')
 const topK = ref(3)
 const searchResults = ref([])
 const question = ref('正式法律意见的答复边界是什么？')
+const conversationId = ref('')
+const conversationTurns = ref([])
+const conversationThread = ref(null)
 const chatState = ref({ success: false })
-const chatAnswer = ref('先完成文档入库，然后向 Legal Agent 提问。回答会基于 Milvus 召回的 SOP 片段生成。')
 const indexResult = ref('尚未执行入库操作。')
+let nextTurnId = 1
 
-const sampleQuestions = [
+const startingQuestions = [
   '正式法律意见的答复边界是什么？',
   '劳动争议证据应该如何整理？',
   '保证责任怎么查询？'
 ]
+const followUpQuestions = [
+  '其中第二条需要准备哪些材料？',
+  '上一个回答的依据来源是什么？',
+  '这个结论有哪些使用边界？'
+]
 
 const selectedFileName = computed(() => selectedFile.value?.name || '')
+const rememberedTurns = computed(() => conversationTurns.value.filter((turn) => turn.status === 'success'))
+const retainedTurns = computed(() => rememberedTurns.value.slice(-5))
+const memoryLabel = computed(() => rememberedTurns.value.length
+  ? `已记忆 ${retainedTurns.value.length} / 5 轮`
+  : '新会话')
+const sessionLabel = computed(() => conversationId.value
+  ? `${conversationId.value.slice(0, 18)}...`
+  : '首次回答后生成')
+const contextDescription = computed(() => {
+  if (!rememberedTurns.value.length) {
+    return '发送首个问题后，系统将保存本会话的近期问答摘要，用于理解后续追问。'
+  }
+  if (rememberedTurns.value.length > 5) {
+    return '页面保留完整交流记录，后端将在下一次回答时参考最近 5 轮问答摘要。'
+  }
+  return `下一次回答将参考当前会话已完成的 ${rememberedTurns.value.length} 轮问答摘要。`
+})
 
 onMounted(() => {
   refreshStatus()
@@ -402,28 +485,71 @@ async function searchSop() {
 }
 
 async function askLegalAgent() {
+  if (chatLoading.value) return
   if (!question.value.trim()) {
     ElMessage.warning('请输入问题')
     return
   }
 
+  const submittedQuestion = question.value.trim()
+  const turn = {
+    id: nextTurnId++,
+    question: submittedQuestion,
+    answer: '',
+    status: 'loading',
+    usesContext: rememberedTurns.value.length > 0 && Boolean(conversationId.value)
+  }
+  conversationTurns.value.push(turn)
+  question.value = ''
   chatLoading.value = true
+  chatState.value = { success: false }
+  await scrollConversationToEnd()
   try {
     const data = await requestJson('/api/legal_chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: question.value.trim() })
+      body: JSON.stringify({
+        conversationId: conversationId.value || null,
+        question: submittedQuestion
+      })
     })
-    chatState.value = { success: Boolean(data.data?.success) }
-    chatAnswer.value = data.data?.answer || data.data?.errorMessage || data.message
-    setLastAction('ok', '问答完成', question.value.trim())
+    if (data.data?.success === false) {
+      throw new Error(data.data.errorMessage || '问答失败')
+    }
+    conversationId.value = data.data?.conversationId || conversationId.value
+    turn.answer = data.data?.answer || '模型未返回回答内容。'
+    turn.status = 'success'
+    chatState.value = { success: true }
+    setLastAction('ok', '问答完成', submittedQuestion)
   } catch (error) {
+    turn.answer = error.message
+    turn.status = 'error'
     chatState.value = { success: false }
-    chatAnswer.value = error.message
     setLastAction('error', '问答失败', error.message)
     ElMessage.error(error.message)
   } finally {
     chatLoading.value = false
+    await scrollConversationToEnd()
+  }
+}
+
+function startNewConversation() {
+  conversationId.value = ''
+  conversationTurns.value = []
+  question.value = startingQuestions[0]
+  chatState.value = { success: false }
+  setLastAction('idle', '已开始新会话', '下一次回答不会引用上一段会话内容。')
+  ElMessage.info('已开始新会话')
+}
+
+function usePrompt(prompt) {
+  question.value = prompt
+}
+
+async function scrollConversationToEnd() {
+  await nextTick()
+  if (conversationThread.value) {
+    conversationThread.value.scrollTop = conversationThread.value.scrollHeight
   }
 }
 

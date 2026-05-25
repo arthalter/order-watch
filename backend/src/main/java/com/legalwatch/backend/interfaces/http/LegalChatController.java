@@ -22,12 +22,13 @@ public class LegalChatController {
     @PostMapping(value = "/api/legal_chat", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<LegalChatResponse> chat(@RequestBody LegalChatRequest request) {
         try {
+            String conversationId = request == null ? null : request.conversationId();
             String question = request == null ? null : request.question();
-            return ApiResponse.ok(legalChatService.chat(question));
+            return ApiResponse.ok(legalChatService.chat(conversationId, question));
         } catch (IllegalArgumentException ex) {
             return ApiResponse.fail(ErrorCode.BAD_REQUEST, ex.getMessage());
         } catch (Exception ex) {
-            return ApiResponse.ok(new LegalChatResponse(false, null, ex.getMessage()));
+            return ApiResponse.ok(new LegalChatResponse(false, null, null, ex.getMessage()));
         }
     }
 }

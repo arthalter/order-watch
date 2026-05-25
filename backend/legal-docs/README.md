@@ -19,6 +19,10 @@
   - 处理步骤（如何组织检索与回答）
   - 输出边界（避免把文档查询写成正式法律意见）
 
-## 下一步任务
+## 演示主题
 
-- 示例文档：合同付款条款、劳动材料清单、借款诉讼时效、法律答复边界。
+- `sop-guarantee-liability.md`：保证责任、保证方式与保证期间。
+- `sop-contract-payment-clause.md`：合同付款节点与验收条款。
+- `sop-labor-dispute-evidence.md`：劳动争议材料清单。
+- `sop-loan-limitation-period.md`：借款纠纷诉讼时效。
+- `sop-legal-answer-style.md`：法律答复边界与免责声明。

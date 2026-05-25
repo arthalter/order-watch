@@ -4,9 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -22,10 +30,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(LegalApiIntegrationTest.TestChatModelConfig.class)
 class LegalApiIntegrationTest {
 
     private static final Path DOCS_DIR = Path.of("target/legal-api-it-docs");
@@ -101,7 +111,22 @@ class LegalApiIntegrationTest {
         JsonNode chat = postJson("/api/legal_chat", "{\"question\":\"保证责任怎么查询？\"}");
         assertOk(chat);
         assertThat(chat.path("data").path("success").asBoolean()).isTrue();
-        assertThat(chat.path("data").path("answer").asText()).contains("保证责任");
+        assertThat(chat.path("data").path("conversationId").asText()).startsWith("conv_");
+        assertThat(chat.path("data").path("answer").asText()).contains(
+                "## 回答摘要",
+                "## 依据来源",
+                "guarantee.md#chunk-",
+                "保证责任",
+                "## 使用边界",
+                "不构成正式法律意见"
+        );
+
+        JsonNode followUp = postJson("/api/legal_chat", """
+                {"conversationId":"%s","question":"其中的保证期间是什么？"}
+                """.formatted(chat.path("data").path("conversationId").asText()));
+        assertOk(followUp);
+        assertThat(followUp.path("data").path("conversationId").asText())
+                .isEqualTo(chat.path("data").path("conversationId").asText());
     }
 
     private JsonNode getJson(String path) throws Exception {
@@ -162,5 +187,24 @@ class LegalApiIntegrationTest {
     private static void assertOk(JsonNode root) {
         assertThat(root.path("success").asBoolean()).isTrue();
         assertThat(root.path("code").asInt()).isZero();
+    }
+
+    @TestConfiguration
+    static class TestChatModelConfig {
+
+        @Bean
+        @Primary
+        ChatModel legalChatTestModel() {
+            return prompt -> new ChatResponse(List.of(new Generation(new AssistantMessage("""
+                    ## 回答摘要
+                    保证责任需要结合入库材料核查保证方式、保证期间与主债务范围。
+
+                    ## 依据来源
+                    - guarantee.md#chunk-0
+
+                    ## 使用边界
+                    本回答仅用于文档查询与学习演示，不构成正式法律意见。
+                    """))));
+        }
     }
 }

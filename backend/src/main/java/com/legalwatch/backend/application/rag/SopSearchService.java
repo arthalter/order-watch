@@ -3,7 +3,9 @@ package com.legalwatch.backend.application.rag;
 import com.legalwatch.backend.infrastructure.rag.SopVectorStoreService;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SopSearchService {
@@ -13,10 +15,19 @@ public class SopSearchService {
 
     private final EmbeddingService embeddingService;
     private final SopVectorStoreService vectorStoreService;
+    private final QueryRewriteService queryRewriteService;
+    private final SopRerankService rerankService;
 
-    public SopSearchService(EmbeddingService embeddingService, SopVectorStoreService vectorStoreService) {
+    public SopSearchService(
+            EmbeddingService embeddingService,
+            SopVectorStoreService vectorStoreService,
+            QueryRewriteService queryRewriteService,
+            SopRerankService rerankService
+    ) {
         this.embeddingService = embeddingService;
         this.vectorStoreService = vectorStoreService;
+        this.queryRewriteService = queryRewriteService;
+        this.rerankService = rerankService;
     }
 
     public List<SopSearchResult> search(String query, Integer topK) {
@@ -25,16 +36,34 @@ public class SopSearchService {
         }
 
         int limit = normalizeTopK(topK);
-        float[] queryVector = embeddingService.embed(query.trim());
-        return vectorStoreService.search(queryVector, limit).stream()
-                .map(match -> new SopSearchResult(
-                        match.fileName(),
-                        match.chunkIndex(),
-                        match.score(),
-                        match.content(),
-                        match.title()
-                ))
-                .toList();
+        int recallLimit = Math.min(MAX_TOP_K, Math.max(limit * 3, limit));
+        Map<String, SopSearchResult> candidates = new LinkedHashMap<>();
+
+        for (String rewrittenQuery : queryRewriteService.rewrite(query.trim())) {
+            float[] queryVector = embeddingService.embed(rewrittenQuery);
+            vectorStoreService.search(queryVector, recallLimit).stream()
+                    .map(SopSearchService::toResult)
+                    .forEach(result -> candidates.merge(
+                            result.fileName() + "#" + result.chunkIndex(),
+                            result,
+                            SopSearchService::higherScore
+                    ));
+        }
+        return rerankService.rerank(query.trim(), List.copyOf(candidates.values()), limit);
+    }
+
+    private static SopSearchResult toResult(SopVectorStoreService.SopSearchMatch match) {
+        return new SopSearchResult(
+                match.fileName(),
+                match.chunkIndex(),
+                match.score(),
+                match.content(),
+                match.title()
+        );
+    }
+
+    private static SopSearchResult higherScore(SopSearchResult left, SopSearchResult right) {
+        return left.score() >= right.score() ? left : right;
     }
 
     private static int normalizeTopK(Integer topK) {

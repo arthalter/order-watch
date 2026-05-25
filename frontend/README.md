@@ -9,6 +9,8 @@ Vue 3 + Element Plus 的 LegalWatch Mini 前端控制台，用于验证后端法
 - SOP chunk 检索
 - 法律文档问答
 
+问答面板以会话时间线展示每轮问题与回答，并使用 `conversationId` 触发后端短期记忆：页面保留可见对话，后端在追问时参考当前会话最近 5 轮回答摘要；点击“新对话”即可开始独立话题。
+
 ## 运行
 
 ```bash
@@ -28,13 +30,23 @@ Vite 会把 `/api` 和 `/health` 代理到后端：
 http://localhost:8080
 ```
 
+如果本地 `8080` 已被其他服务占用，可将后端启动到其他端口并覆盖代理目标：
+
+```bash
+VITE_BACKEND_TARGET=http://localhost:8081 npm run dev
+```
+
 ## 后端准备
 
 在 `backend/` 目录启动 Milvus 和 Spring Boot：
 
 ```bash
 docker compose up -d
+# 仅验证文档入库与检索流程
 EMBEDDING_PROVIDER=fake ./mvnw spring-boot:run
+
+# 验证 Agent 回答与连续追问流程
+DASHSCOPE_API_KEY=你的百炼APIKey ./mvnw spring-boot:run
 ```
 
 ## 页面验证路径
@@ -44,7 +56,9 @@ EMBEDDING_PROVIDER=fake ./mvnw spring-boot:run
 3. 点击“初始化 Collection”
 4. 点击“索引本地文档”
 5. 在“SOP 检索”中搜索 `正式法律意见`
-6. 在“法律文档问答”中发送 `正式法律意见的答复边界是什么？`
+6. 在“连续法律研读”中发送 `保证责任怎么查询？`，观察第一轮回答中的来源定位与使用边界
+7. 点击左侧“结合上文追问”中的 `其中第二条需要准备哪些材料？` 并发送，确认对话时间线保留首问，左侧上下文状态显示已记忆轮次，追问被标记为基于上文
+8. 点击“新对话”，确认时间线与记忆状态清空，再发送新主题问题以验证会话隔离
 
 ## 对应接口
 
@@ -73,4 +87,5 @@ curl "http://localhost:8080/api/sop/search?query=正式法律意见&topK=3"
 curl -X POST http://localhost:8080/api/legal_chat \
   -H "Content-Type: application/json" \
   -d '{"question":"正式法律意见的答复边界是什么？"}'
+
 ```
